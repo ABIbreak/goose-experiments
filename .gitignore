@@ -16,3 +16,5 @@ Makefile.coq.conf
 *.mli
 # hw submissions
 *.tar.gz
+# vim temp file
+*.sw*
