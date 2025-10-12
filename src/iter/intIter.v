@@ -56,9 +56,7 @@ Proof.
   wp_alloc yield_l as "yield".
   wp_pures.
   wp_alloc i_l as "i".
-  wp_pures.
-  wp_store.
-  wp_pures.
+  wp_auto.
   iAssert (
     ∃i : w64,
     i_l ↦ i ∗
@@ -67,25 +65,14 @@ Proof.
   { iFrame. word. }
   wp_for "Hinv".
   iDestruct "Hinv" as "[Hi %Hi_le]".
-  wp_load.
-  wp_pures.
+  wp_auto.
   wp_if_destruct.
-  + wp_pures.
-    wp_load.
-    wp_pures.
-    wp_load.
-    wp_apply ("Hyield").
+  + wp_apply ("Hyield").
     iIntros.
     destruct b.
     - wp_pures.
       iApply wp_for_post_do.
-      wp_pures.
-      wp_load.
-      wp_pures.
-      (* TODO: there has to be a better way :/ *)
-      replace (word.add i (W64 1)) with (W64 (uint.nat i + 1)) by word.
-      wp_store.
-      wp_pures.
+      wp_auto.
       iFrame.
       word.
     - wp_pures.
@@ -93,18 +80,6 @@ Proof.
       wp_pures.
       iApply "HΦ".
       done.
-  + rewrite decide_False.
-    {
-      intros Hne.
-      apply (inj to_val) in Hne.
-      discriminate.
-    }
-    rewrite decide_True.
-    {
-      auto.
-    }
-    wp_pures.
-    iApply "HΦ".
+  + iApply "HΦ".
     done.
 Qed.
-
