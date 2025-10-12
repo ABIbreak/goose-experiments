@@ -3,7 +3,7 @@ ALL_VFILES = $(shell find $(SRC_DIRS) \
 							-not -path "perennial/external/coqutil/etc/coq-scripts/*" \
 							-name "*.v" \
 						)
-PROJ_VFILES := $(shell find 'src/sys_verif' -name "*.v")
+PROJ_VFILES := $(shell find 'src/sys_verif' 'src/iter' -name "*.v")
 SF_VFILES := $(shell find 'src/software_foundations' -name "*.v")
 
 # extract any global arguments for Rocq from _CoqProject
