@@ -34,8 +34,8 @@ Global Instance wp_func_call_intIter :
   WpFuncCall iterator.intIter _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
 
-Global Instance wp_func_call_bozo :
-  WpFuncCall iterator.bozo _ (is_pkg_defined iterator) :=
+Global Instance wp_func_call_isAscii :
+  WpFuncCall iterator.isAscii _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
 
 Global Instance wp_func_call_main :

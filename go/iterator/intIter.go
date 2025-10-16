@@ -2,11 +2,12 @@
 //package main
 package iterator
 
-//import (
+import (
+//	"fmt"
 //	"github.com/goose-lang/std"
 // should push this into Perennial 
 //	"iter"
-//)
+)
 
 // func(yield func(V) bool) is the signature of iter.Seq[V]
 
@@ -20,24 +21,23 @@ func intIter(limit int) func(yield func(int) bool) {
 	}
 }
 
-/*
-func intIter(limit int) func(yield func(int) bool) {
-	temp_limit := limit
-	return func(yield func(int) bool) {
-		for i := 0; i < temp_limit; i++ {
-			if !yield(i) {
-				return
-			}
-		}
-	}
-}
-*/
+func isAscii(str []byte) bool {
+	ret_val := false
 
-func bozo(i int) bool {
-	return i > 6
+	intIter(len(str)) (func (i int) bool {
+		if (str[i] >= 0x80 || str[i] == 0x00) {
+			ret_val = false
+			return false
+		}
+
+		ret_val = true
+		return true
+	})
+
+	return ret_val
 }
 
 func main() {
-	intIter(5)(bozo)
+//	fmt.Println(isAscii([]byte("amongus")))
 }
 

@@ -11,7 +11,7 @@ Context `{ffi_syntax}.
 
 Definition intIter : go_string := "sys_verif_code/iterator.intIter"%go.
 
-(* go: intIter.go:13:6 *)
+(* go: intIter.go:14:6 *)
 Definition intIterⁱᵐᵖˡ : val :=
   λ: "limit",
     exception_do (let: "limit" := (mem.alloc "limit") in
@@ -28,27 +28,42 @@ Definition intIterⁱᵐᵖˡ : val :=
        return: #())
        ))).
 
-Definition bozo : go_string := "sys_verif_code/iterator.bozo"%go.
+Definition isAscii : go_string := "sys_verif_code/iterator.isAscii"%go.
 
-(* go: intIter.go:36:6 *)
-Definition bozoⁱᵐᵖˡ : val :=
-  λ: "i",
-    exception_do (let: "i" := (mem.alloc "i") in
-    return: (int_gt (![#intT] "i") #(W64 6))).
+(* go: intIter.go:24:6 *)
+Definition isAsciiⁱᵐᵖˡ : val :=
+  λ: "str",
+    exception_do (let: "str" := (mem.alloc "str") in
+    let: "ret_val" := (mem.alloc (type.zero_val #boolT)) in
+    let: "$r0" := #false in
+    do:  ("ret_val" <-[#boolT] "$r0");;;
+    do:  (let: "$a0" := (λ: "i",
+      exception_do (let: "i" := (mem.alloc "i") in
+      (if: ((![#byteT] (slice.elem_ref #byteT (![#sliceT] "str") (![#intT] "i"))) ≥ #(W8 128)) || ((![#byteT] (slice.elem_ref #byteT (![#sliceT] "str") (![#intT] "i"))) = #(W8 0))
+      then
+        let: "$r0" := #false in
+        do:  ("ret_val" <-[#boolT] "$r0");;;
+        return: (#false)
+      else do:  #());;;
+      let: "$r0" := #true in
+      do:  ("ret_val" <-[#boolT] "$r0");;;
+      return: (#true))
+      ) in
+    (let: "$a0" := (let: "$a0" := (![#sliceT] "str") in
+    slice.len "$a0") in
+    (func_call #intIter) "$a0") "$a0");;;
+    return: (![#boolT] "ret_val")).
 
 Definition main : go_string := "sys_verif_code/iterator.main"%go.
 
 (* go: intIter.go:40:6 *)
 Definition mainⁱᵐᵖˡ : val :=
   λ: <>,
-    exception_do (do:  (let: "$a0" := (func_call #bozo) in
-    (let: "$a0" := #(W64 5) in
-    (func_call #intIter) "$a0") "$a0");;;
-    return: #()).
+    exception_do (do:  #()).
 
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (bozo, bozoⁱᵐᵖˡ); (main, mainⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (main, mainⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 
