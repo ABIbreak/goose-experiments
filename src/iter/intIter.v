@@ -83,3 +83,54 @@ Proof.
   + iApply "HΦ".
     done.
 Qed.
+
+Lemma wp_intIter_2 P Q (limit : w64) (yield : func.t) :
+  {{{
+    is_pkg_init iterator ∗
+    "limit_bounds" :: ⌜ 0 <= uint.nat limit <= 2 ^ 64 - 1 ⌝ ∗
+    ∀ i : w64, {{{ P }}} #yield #i {{{ (b : bool), RET #b; if b then P else Q }}}
+  }}}
+    @! iterator.intIter #limit
+  {{{ (f : func.t), RET #f; 
+    {{{ P }}} #f #yield {{{ RET #(); P ∨ Q }}}
+  }}}.
+Proof.
+  wp_start as "[%limit_bounds #Hyield]".
+  (* wp_auto. *)
+  (* TODO: the limit hypothesis created by wp_auto cannot be persisted? "No matching clauses for match." *)
+  wp_alloc limit_ptr as "limit".
+  iPersist "limit".
+  wp_pures.
+  iApply "HΦ".
+  wp_start.
+  wp_auto. 
+  iAssert (
+    ∃i : w64,
+    i_ptr ↦ i ∗
+    P ∗
+    ⌜uint.nat i <= uint.nat limit ⌝
+    )%I with "[Hpre i]" as "Hinv".
+  { 
+    iFrame.
+    word. 
+  }
+  wp_for "Hinv".
+  iDestruct "Hinv" as "[Hi [HP %Hi_le]]".
+  wp_auto.
+  wp_if_destruct.
+  + wp_apply ("Hyield" with "HP").
+    iIntros (b) "HP_or_Q".
+    destruct b.
+    - wp_auto.
+      iApply wp_for_post_do.
+      wp_auto.
+      iFrame.
+      word.
+    - wp_auto.
+      iApply wp_for_post_return.
+      wp_auto.
+      iApply "HΦ".
+      iFrame.
+  + iApply "HΦ".
+    iFrame.
+Qed.
