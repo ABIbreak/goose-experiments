@@ -22,9 +22,9 @@ func intIter(limit int) func(yield func(int) bool) {
 }
 
 func isAscii(str []byte) bool {
-	ret_val := false
+	ret_val := true
 
-	intIter(len(str)) (func (i int) bool {
+	loop_body := func (i int) bool {
 		if (str[i] >= 0x80 || str[i] == 0x00) {
 			ret_val = false
 			return false
@@ -32,7 +32,9 @@ func isAscii(str []byte) bool {
 
 		ret_val = true
 		return true
-	})
+	}
+
+	intIter(len(str))(loop_body)
 
 	return ret_val
 }

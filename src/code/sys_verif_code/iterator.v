@@ -35,9 +35,10 @@ Definition isAsciiⁱᵐᵖˡ : val :=
   λ: "str",
     exception_do (let: "str" := (mem.alloc "str") in
     let: "ret_val" := (mem.alloc (type.zero_val #boolT)) in
-    let: "$r0" := #false in
+    let: "$r0" := #true in
     do:  ("ret_val" <-[#boolT] "$r0");;;
-    do:  (let: "$a0" := (λ: "i",
+    let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (λ: "i",
       exception_do (let: "i" := (mem.alloc "i") in
       (if: ((![#byteT] (slice.elem_ref #byteT (![#sliceT] "str") (![#intT] "i"))) ≥ #(W8 128)) || ((![#byteT] (slice.elem_ref #byteT (![#sliceT] "str") (![#intT] "i"))) = #(W8 0))
       then
@@ -49,6 +50,8 @@ Definition isAsciiⁱᵐᵖˡ : val :=
       do:  ("ret_val" <-[#boolT] "$r0");;;
       return: (#true))
       ) in
+    do:  ("loop_body" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
     (let: "$a0" := (let: "$a0" := (![#sliceT] "str") in
     slice.len "$a0") in
     (func_call #intIter) "$a0") "$a0");;;
@@ -56,7 +59,7 @@ Definition isAsciiⁱᵐᵖˡ : val :=
 
 Definition main : go_string := "sys_verif_code/iterator.main"%go.
 
-(* go: intIter.go:40:6 *)
+(* go: intIter.go:42:6 *)
 Definition mainⁱᵐᵖˡ : val :=
   λ: <>,
     exception_do (do:  #()).
