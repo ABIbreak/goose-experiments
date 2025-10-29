@@ -20,7 +20,7 @@ Lemma wp_test (s: loc) (x: w32) :
 
 Lemma wp_intIter_0 (limit : w64) :
   {{{ is_pkg_init iterator }}}
-    (* TODO: purpose of @! at the beginning? to disambiguate between the impl and go string? *)
+    (* @! wraps the name, as seen in perennial/new/golang/theory/pkg.v *)
     @! iterator.intIter #limit
   {{{ (f : func.t), RET #f; True }}}.
 Proof.
@@ -96,14 +96,18 @@ Lemma wp_intIter_2 P Q (limit : w64) (yield : func.t) :
   }}}.
 Proof.
   wp_start as "[%limit_bounds #Hyield]".
+  rewrite -wp_fupd.
+  wp_auto.
   (* wp_auto. *)
   (* TODO: the limit hypothesis created by wp_auto cannot be persisted? "No matching clauses for match." *)
-  wp_alloc limit_ptr as "limit".
+  (*wp_alloc limit_ptr as "limit".
+  *)
   iPersist "limit".
   wp_pures.
   iApply "HΦ".
+  iModIntro.
   wp_start.
-  wp_auto. 
+  wp_auto.
   iAssert (
     ∃i : w64,
     i_ptr ↦ i ∗
@@ -134,3 +138,80 @@ Proof.
   + iApply "HΦ".
     iFrame.
 Qed.
+
+(* NOTE: remember that =?, >=? are for booleans! *)
+
+Fixpoint isAscii (vs : list w8) : bool :=
+  match vs with
+  | v :: vs' => ((uint.Z v) =? 0) && (uint.Z v >=? 0x80) && isAscii vs'
+  | nil => true
+  end.
+
+Lemma wp_isAscii_0 (s : slice.t) (vs : list w8) :
+  {{{
+    is_pkg_init iterator ∗
+    own_slice s DfracDiscarded vs
+  }}}
+    @! iterator.isAscii #s
+  {{{
+    (b : bool), RET #b; True (* ⌜ b = isAscii vs ⌝ *)
+  }}}.
+Proof.
+  wp_start.
+  wp_auto.
+  wp_bind (# (func_callv iterator.intIter) (# (slice.len_f s))).
+  wp_apply wp_intIter_1.
+Admitted.
+
+Definition what_is_a_hoare_triple P e Q Φ : iPropI Σ :=
+  P -∗ (Q -∗ Φ) -∗ WP e {{ v, Φ }}.
+
+Definition is_intIter (f : func.t) limit yield (P : w64 -> iPropI Σ) Φ : iPropI Σ :=
+  P(W64(0)) -∗ 
+  □(∀i, P(i) -∗ 
+    WP @! yield #i {{ ok, if decide (ok = #true) then P(word.add i 1) else Φ}}) -∗
+  (P(limit) -∗ Φ) -∗
+  WP #f @! yield {{ v, Φ }}.
+
+Lemma wp_intIter_3 limit yield P Φ':
+  {{{ is_pkg_init iterator ∗ ⌜ 0 ≤ sint.Z limit ⌝ }}}
+    @! iterator.intIter #limit
+  {{{
+    (f : func.t), RET #f; is_intIter f limit yield P Φ'
+  }}}.
+Proof.
+  wp_start as "%Hlimit".
+  rewrite -wp_fupd.
+  wp_auto.
+  iPersist "limit".
+  iApply "HΦ".
+  iModIntro.
+  unfold is_intIter.
+  iIntros "HP #Hyield HΦ".
+  wp_auto.
+  iAssert (
+    ∃i : w64,
+    i_ptr ↦ i ∗
+    P(i) ∗
+    ⌜sint.Z i <= sint.Z limit ⌝
+    )%I with "[HP i]" as "Hinv".
+  { 
+    iFrame.
+    word.
+  }
+  wp_for "Hinv".
+  iDestruct "Hinv" as "[i [HP %Hi]]".
+  wp_auto.
+  wp_if_destruct.
+  - wp_bind (# (func_callv yield) (# i)).
+    iApply ("Hyield" with "HP").
+    
+    admit.
+  - iApply "HΦ".
+    assert (limit = i) by word.
+    rewrite H.
+    done.
+Admitted.
+  
+
+(*  P(0) ∗ □(∀i : w64, P(#i) -∗ WP(#yield(#i), λ: ok, if ok then P(i + 1) else Φ)).*)
