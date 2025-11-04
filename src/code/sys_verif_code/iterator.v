@@ -28,9 +28,40 @@ Definition intIterⁱᵐᵖˡ : val :=
        return: #())
        ))).
 
-Definition isAscii : go_string := "sys_verif_code/iterator.isAscii"%go.
+Definition factorial : go_string := "sys_verif_code/iterator.factorial"%go.
 
 (* go: intIter.go:24:6 *)
+Definition factorialⁱᵐᵖˡ : val :=
+  λ: "n",
+    exception_do (let: "n" := (mem.alloc "n") in
+    let: "factorial" := (mem.alloc (type.zero_val #intT)) in
+    let: "$r0" := #(W64 1) in
+    do:  ("factorial" <-[#intT] "$r0");;;
+    let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (λ: "i",
+      exception_do (let: "i" := (mem.alloc "i") in
+      do:  ("factorial" <-[#intT] ((![#intT] "factorial") * (![#intT] "i")));;;
+      return: (#true))
+      ) in
+    do:  ("loop_body" <-[#funcT] "$r0");;;
+    let: "iterator" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (let: "$a0" := (![#intT] "n") in
+    (func_call #intIter) "$a0") in
+    do:  ("iterator" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
+    (![#funcT] "iterator") "$a0");;;
+    return: (![#intT] "factorial")).
+
+Definition main : go_string := "sys_verif_code/iterator.main"%go.
+
+(* go: intIter.go:39:6 *)
+Definition mainⁱᵐᵖˡ : val :=
+  λ: <>,
+    exception_do (do:  #()).
+
+Definition isAscii : go_string := "sys_verif_code/iterator.isAscii"%go.
+
+(* go: traceIter.go:3:6 *)
 Definition isAsciiⁱᵐᵖˡ : val :=
   λ: "str",
     exception_do (let: "str" := (mem.alloc "str") in
@@ -51,22 +82,18 @@ Definition isAsciiⁱᵐᵖˡ : val :=
       return: (#true))
       ) in
     do:  ("loop_body" <-[#funcT] "$r0");;;
-    do:  (let: "$a0" := (![#funcT] "loop_body") in
-    (let: "$a0" := (let: "$a0" := (![#sliceT] "str") in
+    let: "iterator" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (let: "$a0" := (let: "$a0" := (![#sliceT] "str") in
     slice.len "$a0") in
-    (func_call #intIter) "$a0") "$a0");;;
+    (func_call #intIter) "$a0") in
+    do:  ("iterator" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
+    (![#funcT] "iterator") "$a0");;;
     return: (![#boolT] "ret_val")).
-
-Definition main : go_string := "sys_verif_code/iterator.main"%go.
-
-(* go: intIter.go:42:6 *)
-Definition mainⁱᵐᵖˡ : val :=
-  λ: <>,
-    exception_do (do:  #()).
 
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (main, mainⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (main, mainⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 

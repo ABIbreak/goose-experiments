@@ -21,22 +21,19 @@ func intIter(limit int) func(yield func(int) bool) {
 	}
 }
 
-func isAscii(str []byte) bool {
-	ret_val := true
+func factorial(n int) int {
+	factorial := 1
 
-	loop_body := func (i int) bool {
-		if (str[i] >= 0x80 || str[i] == 0x00) {
-			ret_val = false
-			return false
-		}
-
-		ret_val = true
+	loop_body := func(i int) bool {
+		factorial *= i
 		return true
 	}
 
-	intIter(len(str))(loop_body)
+	iterator := intIter(n)
 
-	return ret_val
+	iterator(loop_body)
+
+	return factorial
 }
 
 func main() {
