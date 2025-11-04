@@ -99,6 +99,7 @@ Lemma ex_pure_impl s q (bs: list w8) :
   s ↦*{q} bs -∗
   ⌜slice.len_f s = 3%Z⌝ ∗ s ↦*{q} bs.
 Proof.
+  
 Admitted.
 
 (*| **Exercise:** complete the proof
