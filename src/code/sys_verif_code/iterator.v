@@ -40,7 +40,7 @@ Definition factorialⁱᵐᵖˡ : val :=
     let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
     let: "$r0" := (λ: "i",
       exception_do (let: "i" := (mem.alloc "i") in
-      do:  ("factorial" <-[#intT] ((![#intT] "factorial") * (![#intT] "i")));;;
+      do:  ("factorial" <-[#intT] ((![#intT] "factorial") * ((![#intT] "i") + #(W64 1))));;;
       return: (#true))
       ) in
     do:  ("loop_body" <-[#funcT] "$r0");;;

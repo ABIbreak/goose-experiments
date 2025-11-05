@@ -53,7 +53,7 @@ Lemma asdf (i : w64) :
 Proof.
   assert (0 <= uint.nat i < 2 ^ 64) by admit.
   word.
-
+Admitted.
 
 (* You will need to use `rewrite word.unsigned_mul_nowrap` yourself in this
 proof, which the `word` tactic will not (currently) do automatically. *)

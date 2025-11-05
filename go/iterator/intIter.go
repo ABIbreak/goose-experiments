@@ -25,7 +25,7 @@ func factorial(n int) int {
 	factorial := 1
 
 	loop_body := func(i int) bool {
-		factorial *= i
+		factorial *= (i + 1)
 		return true
 	}
 
