@@ -10,24 +10,21 @@ Context `{hG: !heapGS Σ} `{!globalsGS Σ} {go_ctx: GoContext}.
 
 Definition is_intIter (intIter yield : func.t) (limit : w64) (P : w64 → iPropI Σ) Φ : iPropI Σ :=
   (
-    if (decide (limit = (W64 0))) then
-      Φ
-    else
-      "HP" :: P(W64 0) ∗
-      "#Hyield" :: □(
-        ∀ (i : w64),
-          (⌜ 0 ≤ uint.nat i < uint.nat limit ⌝ ∗ P(i)) -∗
-          WP #yield #i {{
-            ok,
-            if (decide (ok = #true)) then
-              P(word.add i (W64 1))
-            else if (decide (ok = #false)) then
-              Φ
-            else
-              False
-          }}
-      ) ∗
-      "Hlimit" :: (P(limit) -∗ Φ)
+    "HP" :: P(W64 0) ∗
+    "#Hyield" :: □(
+      ∀ (i : w64),
+        (⌜ 0 ≤ uint.nat i < uint.nat limit ⌝ ∗ P(i)) -∗
+        WP #yield #i {{
+          ok,
+          if (decide (ok = #true)) then
+            P(word.add i (W64 1))
+          else if (decide (ok = #false)) then
+            Φ
+          else
+            False
+        }}
+    ) ∗
+    "Hlimit" :: (P(limit) -∗ Φ)
   )%I -∗
   WP #intIter #yield {{
     _, Φ
@@ -47,16 +44,8 @@ Proof.
   iModIntro.
   iApply "HΦ".
   unfold is_intIter.
-  destruct (decide _).
-  {
-    iIntros "HΦ'".
-    wp_auto.
-    wp_for.
-    rewrite bool_decide_eq_false_2; [word|].
-    wp_auto.
-    done.
-  }
-  iIntros "[HP [#Hyield Himp]]".
+  iIntros "Hpre".
+  iNamed "Hpre".
   wp_auto.
   iPersist "yield".
   iAssert (
@@ -76,7 +65,7 @@ Proof.
     rewrite bool_decide_eq_false_2 ; [word|].
     wp_auto.
     subst.
-    iApply "Himp".
+    iApply "Hlimit".
     done.
   }
   rewrite bool_decide_eq_true_2 ; [word|].
@@ -144,7 +133,7 @@ Proof.
       λ i,
       "factorial" :: factorial_ptr ↦ W64 (fact (uint.nat i))
     )%I
-    (factorial_ptr ↦ W64 (fact (uint.nat n)))    
+    (factorial_ptr ↦ W64 (fact (uint.nat n)))
   ); [word|].
   iIntros (intIter_f) "HintIter".
   wp_auto.
@@ -153,13 +142,6 @@ Proof.
   iApply (wp_wand with "[factorial HintIter]").
   {
     iApply "HintIter".
-    destruct (decide _).
-    {
-      subst.
-      replace (uint.nat (W64 0)) with 0%nat by word.
-      simpl.
-      done.
-    }
     iSplitL.
     {
       replace (uint.nat (W64 0)) with 0%nat by word.
@@ -183,8 +165,8 @@ Proof.
         assert (
           word.mul (W64 (fact (uint.nat i))) (W64 (S (uint.nat i))) = 
           W64 (S (uint.nat i) * fact (uint.nat i))%nat
-        ) by word.
-        rewrite H.
+        ) as Heq by word.
+        rewrite Heq.
         done.
       }
       done.
