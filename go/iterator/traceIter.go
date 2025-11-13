@@ -1,10 +1,20 @@
 package iterator
 
+func sliceIter[V any](s []V) func(yield func(V) bool) {
+	return func(yield func(V) bool) {
+		for _, v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 func isAscii(str []byte) bool {
 	ret_val := true
 
-	var loop_body func(int) bool = func (i int) bool {
-		if (str[i] >= 0x80 || str[i] == 0x00) {
+	loop_body := func (b byte) bool {
+		if (b >= 0x80 || b == 0x00) {
 			ret_val = false
 			return false
 		}
@@ -13,7 +23,7 @@ func isAscii(str []byte) bool {
 		return true
 	}
 
-	iterator := intIter(len(str))
+	iterator := sliceIter[byte](str)
 
 	iterator(loop_body)
 
