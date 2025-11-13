@@ -8,12 +8,12 @@ Context `{hG: !heapGS Σ} `{!globalsGS Σ} {go_ctx: GoContext}.
 #[global] Instance : IsPkgInit iterator := define_is_pkg_init True%I.
 #[global] Instance : GetIsPkgInitWf iterator := build_get_is_pkg_init_wf.
 
-Definition is_intIter (intIter yield : func.t) (limit : w64) (P : w64 → iPropI Σ) Φ : iPropI Σ :=
-  (
+Definition is_intIter (intIter : func.t) (limit : w64) (P : w64 → iPropI Σ) Φ : iPropI Σ :=
+  ∀ (yield : func.t), (
     "HP" :: P(W64 0) ∗
     "#Hyield" :: □(
       ∀ (i : w64),
-        (⌜ 0 ≤ uint.nat i < uint.nat limit ⌝ ∗ P(i)) -∗
+      (⌜ 0 ≤ sint.Z i < sint.Z limit ⌝ ∗ P(i)) -∗
         WP #yield #i {{
           ok,
           if (decide (ok = #true)) then
@@ -30,11 +30,11 @@ Definition is_intIter (intIter yield : func.t) (limit : w64) (P : w64 → iPropI
     _, Φ
   }}.
 
-Lemma wp_intIter yield limit P Φ' :
+Lemma wp_intIter limit P Φ' :
   {{{ is_pkg_init iterator ∗ ⌜ 0 ≤ sint.Z limit ⌝ }}}
     @! iterator.intIter #limit
   {{{
-    (f : func.t), RET #f; is_intIter f yield limit P Φ'
+    (f : func.t), RET #f; is_intIter f limit P Φ'
   }}}.
 Proof.
   wp_start as "%Hlimit".
@@ -44,13 +44,13 @@ Proof.
   iModIntro.
   iApply "HΦ".
   unfold is_intIter.
-  iIntros "Hpre".
+  iIntros (yield) "Hpre".
   iNamed "Hpre".
   wp_auto.
   iPersist "yield".
   iAssert (
     ∃ (i : w64),
-    "%Hi" :: ⌜ 0 ≤ uint.nat i ≤ uint.nat limit ⌝ ∗
+    "%Hi" :: ⌜ 0 ≤ sint.Z i ≤ sint.Z limit ⌝ ∗
     "Hi" :: i_ptr ↦ i ∗
     "HP" :: P(i)
   )%I with "[i HP]" as "Hinv".
@@ -112,39 +112,37 @@ Qed.
 
 Lemma wp_factorial (n : w64) :
   {{{ is_pkg_init iterator ∗ 
-      "%Hfact" :: ⌜ fact (uint.nat n) < 2 ^ 64 ⌝ ∗
+      "%Hfact" :: ⌜ fact (sint.nat n) < 2 ^ 32 ⌝ ∗
       "%Hn" :: ⌜ 0 ≤ sint.Z n ⌝    
   }}}
       @! iterator.factorial #n
   {{{ 
       (factorial : w64), RET #factorial; 
-      ⌜ uint.nat factorial = fact (uint.nat n) ⌝ 
+      ⌜ sint.Z factorial = fact (sint.nat n) ⌝ 
   }}}.
 Proof.
   wp_start.
   iNamed "Hpre".
   wp_auto.
-  set (loop_body := func.mk _ _ _).
   wp_apply (
     wp_intIter
-    loop_body
     n
     (
       λ i,
-      "factorial" :: factorial_ptr ↦ W64 (fact (uint.nat i))
+      "factorial" :: factorial_ptr ↦ W64 (fact (sint.nat i))
     )%I
-    (factorial_ptr ↦ W64 (fact (uint.nat n)))
+    (factorial_ptr ↦ W64 (fact (sint.nat n)))
   ); [word|].
   iIntros (intIter_f) "HintIter".
   wp_auto.
   unfold is_intIter.
-  wp_bind (#intIter_f (#loop_body)).
+  wp_bind (#intIter_f (#_)).
   iApply (wp_wand with "[factorial HintIter]").
   {
     iApply "HintIter".
     iSplitL.
     {
-      replace (uint.nat (W64 0)) with 0%nat by word.
+      replace (sint.nat (W64 0)) with 0%nat by word.
       simpl.
       done.
     }
@@ -156,15 +154,15 @@ Proof.
       wp_auto.
       destruct (decide _).
       {
-        replace (uint.nat (word.add i (W64 1))) with (S (uint.nat i))%nat by word.
-        replace (word.add i (W64 1)) with (W64 (S (uint.nat i))) by word.
+        replace (sint.nat (word.add i (W64 1))) with (S (sint.nat i))%nat by word.
+        replace (word.add i (W64 1)) with (W64 (S (sint.nat i))) by word.
         rewrite fact_S.
-        pose proof fact_monotonic (S (uint.nat i)) (uint.nat n) as Hfact_monotonic.
-        assert (S (uint.nat i) ≤ uint.nat n)%nat as Hmono by word.
+        pose proof fact_monotonic (S (sint.nat i)) (sint.nat n) as Hfact_monotonic.
+        assert (S (sint.nat i) ≤ sint.nat n)%nat as Hmono by word.
         apply Hfact_monotonic in Hmono.
         assert (
-          word.mul (W64 (fact (uint.nat i))) (W64 (S (uint.nat i))) = 
-          W64 (S (uint.nat i) * fact (uint.nat i))%nat
+          word.mul (W64 (fact (sint.nat i))) (W64 (S (sint.nat i))) = 
+          W64 (S (sint.nat i) * fact (sint.nat i))%nat
         ) as Heq by word.
         rewrite Heq.
         done.
