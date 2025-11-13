@@ -8,12 +8,13 @@ Context `{hG: !heapGS Σ} `{!globalsGS Σ} {go_ctx: GoContext}.
 #[global] Instance : IsPkgInit iterator := define_is_pkg_init True%I.
 #[global] Instance : GetIsPkgInitWf iterator := build_get_is_pkg_init_wf.
 
-Definition is_detTraceIter V `{!IntoVal V} (detTraceIter yield : func.t) (trace : list V) (P : list V → iPropI Σ) Φ : iPropI Σ :=
-  (
+
+Definition is_detTraceIter V `{!IntoVal V} (detTraceIter : func.t) (trace : list V) (P : list V → iPropI Σ) Φ : iPropI Σ :=
+  ∀ (yield : func.t), (
     "HP" :: P([]) ∗
     "#Hyield" :: □(
-      ∀ (v : V) (vs : list V),
-        (⌜ vs ≠ trace ⌝ ∗ P(vs)) -∗
+      ∀ (v : V) (vs : list V) (i : nat),
+        (⌜ vs ++ [v] = firstn (S i) trace ⌝ (* -* vs <> trace also! *) ∗ P(vs)) -∗
         WP #yield #v {{ 
           ok,
           if (decide (ok = #true)) then
@@ -24,7 +25,7 @@ Definition is_detTraceIter V `{!IntoVal V} (detTraceIter yield : func.t) (trace 
             False
         }}
     ) ∗
-    "Hlimit" :: (P(trace) -∗ Φ) 
+    "Htrace" :: (P(trace) -∗ Φ) 
   )%I -∗
   WP #detTraceIter #yield {{
     _, Φ
@@ -52,7 +53,20 @@ Proof.
       lia.
 Qed.
 
-Lemma wp_sliceIter yield slice vs P Φ' :
+(* TODO: why isn't this also in the Rocq stdlib?? *)
+Lemma In_take_imp_In_list :
+  ∀(A : Type) (x : A) (xs : list A) (n : nat), In x (firstn n xs) → In x xs.
+Proof.
+  intros A x xs n HIn.
+  apply list_elem_of_In in HIn.
+  apply list_elem_of_In.
+  apply elem_of_take in HIn.
+  destruct HIn as [i [? ?]].
+  apply (list_elem_of_lookup_2 xs i x).
+  trivial.
+Qed.
+
+Lemma wp_sliceIter slice vs P Φ' :
   {{{ 
     is_pkg_init iterator ∗ 
     "#Hslice" :: own_slice slice DfracDiscarded vs
@@ -60,7 +74,7 @@ Lemma wp_sliceIter yield slice vs P Φ' :
     @! iterator.sliceIter #uint8T #slice
   {{{
     (f : func.t), RET #f;
-    is_detTraceIter w8 f yield vs P Φ'
+    is_detTraceIter w8 f vs P Φ'
   }}}.
 Proof.
   wp_start.
@@ -68,21 +82,21 @@ Proof.
   wp_auto.
   iApply "HΦ".
   unfold is_detTraceIter.
-  iIntros "Hpre".
+  iIntros (yield) "Hpre".
   iNamed "Hpre".
-  iDestruct (own_slice_len slice DfracDiscarded vs with "Hslice") as "[%Hlength %Hslice_len]".
+  iDestruct (own_slice_len with "Hslice") as "[%Hlength %Hslice_len]".
   wp_auto.
   iAssert (
     ∃(i : w64) (v : w8),
     "i" :: i_ptr ↦ i ∗
-    "v" :: v_ptr ↦ v ∗
+    "v" :: v_ptr ↦ v ∗ (* v = (vs !!! (sint.nat i)) *)
     "HP" :: P(firstn (sint.nat i) vs) ∗
     "%Hi" :: ⌜ 0 ≤ sint.Z i ≤ length vs ⌝
   )%I with "[HP i v]" as "Hinv".
   {
     iFrame.
     replace (sint.Z (W64 0)) with 0 by word.
-    word.
+    iSplitL ; word.
   }
   wp_for "Hinv".
   wp_if_destruct.
@@ -91,14 +105,10 @@ Proof.
     wp_pure ; first word.
     wp_auto.
 
-    (* TODO: cleanup *)
-    assert (sint.nat i < length vs)%nat as Hi2 by word.
-    pose proof (lookup_lt_is_Some_2 vs (sint.nat i)).
-    apply H in Hi2.
-    unfold is_Some in Hi2.
-    destruct Hi2.
+    assert (sint.nat i < length vs)%nat as Hi3 by word.
+    apply list_lookup_lookup_total_lt in Hi3.
 
-    wp_apply (wp_load_slice_elem slice i vs DfracDiscarded x) ; first lia.
+    wp_apply (wp_load_slice_elem slice i vs DfracDiscarded _) ; first lia.
     {
       iSplitL.
       - iApply "Hslice".
@@ -109,16 +119,12 @@ Proof.
     wp_bind (#yield (#_)).
     iApply (wp_wand with "[HP]").
     {
-      iApply "Hyield".
+      iApply ("Hyield" $! (vs !!! sint.nat i) (firstn (sint.nat i) vs) (sint.nat i)).
       iFrame.
       iPureIntro.
-      intuition.
-      assert (sint.nat i >= length vs).
-      {
-        apply firstn_n_length.
-        done.
-      }
-      lia.
+      pose proof (take_S_r vs (sint.nat i) (vs !!! (sint.nat i))).
+      apply H in Hi3.
+      done.
     }
     iIntros (?) "Hpost".
     destruct (decide _).
@@ -130,13 +136,8 @@ Proof.
       iSplitL.
       - replace (sint.nat (word.add i (W64 1))) with (S (sint.nat i))%nat by word.
         simpl.
-        Search "take".
-        assert (take (S (sint.nat i)) vs = take (sint.nat i) vs ++ [x]).
-        {
-          apply take_S_r.
-          done.
-        }
-        rewrite H1.
+        pose proof (take_S_r vs (sint.nat i) (vs !!! sint.nat i)) as Htake.
+        rewrite Htake ; first done.
         done.
       - word.
     }
@@ -149,9 +150,117 @@ Proof.
     }
     done.
   }
-  iApply "Hlimit".
+  iApply "Htrace".
   replace (sint.nat i) with (length vs) by word.
-  - assert (take (length vs) vs = vs) by apply firstn_all.
-    replace (take (length vs) vs) with vs.
-    done.
+  replace (take (length vs) vs) with vs by (symmetry ; apply firstn_all).
+  done.
+Qed.
+
+Definition isAscii (vs : list w8) : Prop :=
+  Forall (λ c, (uint.Z c ≠ 0) ∧ (uint.Z c < 0x80)) vs.
+
+Lemma wp_isAscii slice vs :
+  {{{
+    is_pkg_init iterator ∗
+    "#Hslice" :: own_slice slice DfracDiscarded vs
+  }}}
+    @! iterator.isAscii #slice
+  {{{
+    (b : bool), RET #b; ⌜ b = bool_decide (isAscii vs) ⌝
+  }}}.
+Proof.
+  wp_start.
+  iNamed "Hpre".
+  wp_auto.
+  iPersist "str".
+  wp_apply (
+    wp_sliceIter
+    slice 
+    vs
+    (
+      λ l,
+      "%HisAscii" :: ⌜ isAscii l ⌝ ∗ 
+      "ret_val" :: ret_val_ptr ↦ bool_decide (isAscii l)
+    )%I
+    (ret_val_ptr ↦ bool_decide (isAscii vs))%I
+  ) ; first done.
+  iIntros (?) "HdetTraceIter".
+  wp_auto.
+  unfold is_detTraceIter.
+  wp_bind (#f (#_)).
+  iApply (wp_wand with "[ret_val HdetTraceIter]").
+  {
+    iApply "HdetTraceIter".
+    iFrame.
+    iSplitR.
+    {
+      iPureIntro.
+      unfold isAscii.
+      done.
+    }
+    iSplitL.
+    2: {
+      iIntros "Hpost".
+      iNamed "Hpost".
+      iFrame.
+    }
+    iModIntro.
+    iIntros (v vs' i) "[%Hvs asdf]".
+    iNamed "asdf".
+    wp_auto.
+    wp_if_destruct.
+    {
+      rewrite bool_decide_eq_false_2.
+      {
+        unfold isAscii.
+        apply Exists_not_Forall.
+        apply Exists_exists.
+        exists v.
+        split.
+        - apply (In_take_imp_In_list _ v vs (S i)).
+          rewrite <- Hvs.
+          apply in_or_app.
+          right.
+          apply list_elem_of_In.
+          set_solver.
+        - simpl. word.
+      }
+      done.
+    }
+    wp_if_destruct.
+    {
+      rewrite bool_decide_eq_false_2.
+      {
+        unfold isAscii.
+        apply Exists_not_Forall.
+        apply Exists_exists.
+        exists (W8 0).
+        split.
+        - apply (In_take_imp_In_list _ (W8 0) vs (S i)).
+          rewrite <- Hvs.
+          apply in_or_app.
+          right.
+          apply list_elem_of_In.
+          set_solver.
+        - simpl. word.
+      }
+      done.
+    }
+    assert (isAscii (vs' ++ [v])).
+    {
+      unfold isAscii.
+      apply Forall_app_2.
+      - unfold isAscii in HisAscii.
+        done.
+      - apply Forall_singleton.
+        word.
+    }
+    iSplitR ; first done.
+    rewrite bool_decide_eq_true_2 ; first done.
+    iFrame.
+  }
+  iIntros (?) "ret_val".
+  wp_auto.
+  iApply "HΦ".
+  done.
 Qed.
