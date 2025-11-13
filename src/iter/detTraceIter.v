@@ -9,7 +9,7 @@ Context `{hG: !heapGS Σ} `{!globalsGS Σ} {go_ctx: GoContext}.
 #[global] Instance : GetIsPkgInitWf iterator := build_get_is_pkg_init_wf.
 
 
-Definition is_detTraceIter V `{!IntoVal V} (detTraceIter : func.t) (trace : list V) (P : list V → iPropI Σ) Φ : iPropI Σ :=
+Definition is_detTraceIter `{!IntoVal V} (detTraceIter : func.t) (trace : list V) (P : list V → iPropI Σ) Φ : iPropI Σ :=
   ∀ (yield : func.t), (
     "HP" :: P([]) ∗
     "#Hyield" :: □(
@@ -66,15 +66,15 @@ Proof.
   trivial.
 Qed.
 
-Lemma wp_sliceIter slice vs P Φ' :
+Lemma wp_sliceIter `{!IntoVal V} `{!IntoValTyped V t} `{Inhabited V} slice (vs : list V) P Φ' :
   {{{ 
     is_pkg_init iterator ∗ 
     "#Hslice" :: own_slice slice DfracDiscarded vs
   }}}
-    @! iterator.sliceIter #uint8T #slice
+    @! iterator.sliceIter #t #slice
   {{{
     (f : func.t), RET #f;
-    is_detTraceIter w8 f vs P Φ'
+    is_detTraceIter f vs P Φ'
   }}}.
 Proof.
   wp_start.
@@ -87,7 +87,7 @@ Proof.
   iDestruct (own_slice_len with "Hslice") as "[%Hlength %Hslice_len]".
   wp_auto.
   iAssert (
-    ∃(i : w64) (v : w8),
+    ∃(i : w64) (v : V),
     "i" :: i_ptr ↦ i ∗
     "v" :: v_ptr ↦ v ∗ (* v = (vs !!! (sint.nat i)) *)
     "HP" :: P(firstn (sint.nat i) vs) ∗
@@ -101,7 +101,7 @@ Proof.
   wp_for "Hinv".
   wp_if_destruct.
   {
-    wp_bind (slice.elem_ref (# uint8T) (# slice) (# i)).
+    wp_bind (slice.elem_ref (# t) (# slice) (# i)).
     wp_pure ; first word.
     wp_auto.
 
@@ -122,8 +122,8 @@ Proof.
       iApply ("Hyield" $! (vs !!! sint.nat i) (firstn (sint.nat i) vs) (sint.nat i)).
       iFrame.
       iPureIntro.
-      pose proof (take_S_r vs (sint.nat i) (vs !!! (sint.nat i))).
-      apply H in Hi3.
+      pose proof (take_S_r vs (sint.nat i) (vs !!! (sint.nat i))) as H0.
+      apply H0 in Hi3.
       done.
     }
     iIntros (?) "Hpost".
