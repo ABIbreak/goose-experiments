@@ -37,11 +37,11 @@ func reverseSlice[V any](s []V) []V {
 	rev_s := make([]V, len(s))
 
 	loop_body := func(i int, v V) bool {
-		rev_s[len(s) - 1 - i] = v
+		rev_s[len(s)-1-i] = v
 
 		return true
 	}
-	
+
 	iterator := sliceIter[V](s)
 
 	iterator(loop_body)
