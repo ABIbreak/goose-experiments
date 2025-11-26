@@ -52,6 +52,71 @@ Definition factorialⁱᵐᵖˡ : val :=
     (![#funcT] "iterator") "$a0");;;
     return: (![#intT] "factorial")).
 
+Definition mapIter : go_string := "sys_verif_code/iterator.mapIter"%go.
+
+(* go: map_iter.go:3:6 *)
+Definition mapIterⁱᵐᵖˡ : val :=
+  λ: "K" "V" "m",
+    exception_do (let: "m" := (mem.alloc "m") in
+    return: ((λ: "yield",
+       exception_do (let: "yield" := (mem.alloc "yield") in
+       let: "$range" := (![type.mapT "K" "V"] "m") in
+       (let: "v" := (mem.alloc (type.zero_val "V")) in
+       let: "k" := (mem.alloc (type.zero_val "K")) in
+       map.for_range "$range" (λ: "$key" "value",
+         do:  ("v" <-["V"] "$value");;;
+         do:  ("k" <-["K"] "$key");;;
+         (if: (~ (let: "$a0" := (!["K"] "k") in
+         let: "$a1" := (!["V"] "v") in
+         (![#funcT] "yield") "$a0" "$a1"))
+         then return: (#())
+         else do:  #())));;;
+       return: #())
+       ))).
+
+Definition mapDeepEqual : go_string := "sys_verif_code/iterator.mapDeepEqual"%go.
+
+(* go: map_iter.go:13:6 *)
+Definition mapDeepEqualⁱᵐᵖˡ : val :=
+  λ: "K" "V" "m1" "m2",
+    exception_do (let: "m2" := (mem.alloc "m2") in
+    let: "m1" := (mem.alloc "m1") in
+    (if: (let: "$a0" := (![type.mapT "K" "V"] "m1") in
+    map.len "$a0") ≠ (let: "$a0" := (![type.mapT "K" "V"] "m2") in
+    map.len "$a0")
+    then return: (#false)
+    else do:  #());;;
+    let: "ret_val" := (mem.alloc (type.zero_val #boolT)) in
+    let: "$r0" := #true in
+    do:  ("ret_val" <-[#boolT] "$r0");;;
+    let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (λ: "k1" "v1",
+      exception_do (let: "v1" := (mem.alloc "v1") in
+      let: "k1" := (mem.alloc "k1") in
+      let: "present" := (mem.alloc (type.zero_val #boolT)) in
+      let: "v2" := (mem.alloc (type.zero_val "V")) in
+      let: ("$ret0", "$ret1") := (map.get (![type.mapT "K" "V"] "m2") (!["K"] "k1")) in
+      let: "$r0" := "$ret0" in
+      let: "$r1" := "$ret1" in
+      do:  ("v2" <-["V"] "$r0");;;
+      do:  ("present" <-[#boolT] "$r1");;;
+      (if: (~ (![#boolT] "present")) || (~ (interface.eq (!["V"] "v1") (!["V"] "v2")))
+      then
+        let: "$r0" := #false in
+        do:  ("ret_val" <-[#boolT] "$r0");;;
+        return: (#false)
+      else do:  #());;;
+      return: (#true))
+      ) in
+    do:  ("loop_body" <-[#funcT] "$r0");;;
+    let: "iterator" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (let: "$a0" := (![type.mapT "K" "V"] "m1") in
+    ((func_call #mapIter) "K" "V") "$a0") in
+    do:  ("iterator" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
+    (![#funcT] "iterator") "$a0");;;
+    return: (![#boolT] "ret_val")).
+
 Definition sliceIter : go_string := "sys_verif_code/iterator.sliceIter"%go.
 
 (* go: slice_iter.go:3:6 *)
@@ -138,7 +203,7 @@ Definition reverseSliceⁱᵐᵖˡ : val :=
 
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (reverseSlice, reverseSliceⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (mapIter, mapIterⁱᵐᵖˡ); (mapDeepEqual, mapDeepEqualⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (reverseSlice, reverseSliceⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 

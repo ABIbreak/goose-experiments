@@ -38,6 +38,14 @@ Global Instance wp_func_call_factorial :
   WpFuncCall iterator.factorial _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
 
+Global Instance wp_func_call_mapIter :
+  WpFuncCall iterator.mapIter _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
+Global Instance wp_func_call_mapDeepEqual :
+  WpFuncCall iterator.mapDeepEqual _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
 Global Instance wp_func_call_sliceIter :
   WpFuncCall iterator.sliceIter _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
