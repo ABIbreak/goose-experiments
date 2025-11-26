@@ -29,3 +29,24 @@ func isAscii(str []byte) bool {
 
 	return ret_val
 }
+
+func sliceIter2[V any](s []V) func(yield func(int, V) bool) {
+	return func(yield func(int, V) bool) {
+		for i, v := range s {
+			if !yield(i, v) {
+				return
+			}
+		}
+	}
+}
+
+// 0 indexed
+func euler_triangle_row(row int) []int {
+	s := make([]int, row + 1)
+
+	loop_body := func(i int, v int) bool {
+		if ()
+
+		return true
+	}
+}
