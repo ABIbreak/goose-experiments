@@ -13,19 +13,19 @@ Definition is_sliceIter `{!IntoVal V} (sliceIter : func.t) (trace : list V)
   ∀ (yield : func.t), (
     "HP" :: P(W64 0)([]) ∗
     "#Hyield" :: □(
-      ∀ (v : V) (vs : list V) (i : nat),
-        (⌜ vs ++ [v] = firstn (S i) trace ⌝ (* -* vs <> trace also! *) ∗ P(W64 i)(vs)) -∗
-        WP #yield #v {{ 
+      ∀ (v : V) (vs : list V) (i : w64),
+        (⌜ vs ++ [v] = firstn (S (sint.nat i)) trace ⌝ (* -* vs <> trace also! *) ∗ P(i)(vs)) -∗
+        WP #yield #i #v {{ 
           ok,
           if (decide (ok = #true)) then
-            P(W64 (S i))((vs ++ [v])%list)
+            P(W64 (S (sint.nat i)))((vs ++ [v])%list)
           else if (decide (ok = #false)) then
             Φ
           else
             False
         }}
     ) ∗
-    "Htrace" :: (P(length trace)(trace) -∗ Φ) 
+    "Htrace" :: (P(W64 (length trace))(trace) -∗ Φ) 
   )%I -∗
   WP #sliceIter #yield {{
     _, Φ
@@ -87,14 +87,16 @@ Proof.
   iDestruct (own_slice_len with "Hslice") as "[%Hlength %Hslice_len]".
   wp_auto.
   iAssert (
-    ∃(i : w64) (v : V),
+    ∃(i : w64)(j : w64)(v : V),
     "i" :: i_ptr ↦ i ∗
+    "j" :: j_ptr ↦ j ∗
     "v" :: v_ptr ↦ v ∗ (* v = (vs !!! (sint.nat i)) *)
     "HP" :: P(i)(firstn (sint.nat i) vs) ∗
     "%Hi" :: ⌜ 0 ≤ sint.Z i ≤ length vs ⌝
-  )%I with "[HP i v]" as "Hinv".
+  )%I with "[HP i j v]" as "Hinv".
   {
     iFrame.
+    simpl.
     replace (sint.Z (W64 0)) with 0 by word.
     iSplitL ; word.
   }
@@ -114,10 +116,10 @@ Proof.
     }
     iIntros "_".
     wp_auto.
-    wp_bind (#yield (#_)).
+    wp_bind (#yield (#_) (#_)).
     iApply (wp_wand with "[HP]").
     {
-      iApply ("Hyield" $! (vs !!! sint.nat i) (firstn (sint.nat i) vs) (sint.nat i)).
+      iApply ("Hyield" $! (vs !!! sint.nat i) (firstn (sint.nat i) vs) i).
       replace (W64 (sint.nat i)) with i by word.
       iFrame.
       iPureIntro.
@@ -219,7 +221,7 @@ Proof.
         apply Exists_exists.
         exists v.
         split.
-        - apply (In_take_imp_In_list _ v vs (S i)).
+        - apply (In_take_imp_In_list _ v vs (S (sint.nat i))).
           rewrite <- Hvs.
           apply in_or_app.
           right.
@@ -238,7 +240,7 @@ Proof.
         apply Exists_exists.
         exists (W8 0).
         split.
-        - apply (In_take_imp_In_list _ (W8 0) vs (S i)).
+        - apply (In_take_imp_In_list _ (W8 0) vs (S (sint.nat i))).
           rewrite <- Hvs.
           apply in_or_app.
           right.
@@ -266,3 +268,34 @@ Proof.
   iApply "HΦ".
   done.
 Qed.
+
+Lemma wp_reverseSlice `{!IntoVal V} `{!IntoValTyped V t} slice (vs : list V) :
+  {{{
+    is_pkg_init iterator ∗
+    "#Hslice" :: own_slice slice DfracDiscarded vs
+  }}}
+    @! iterator.reverseSlice #t #slice
+  {{{
+    (rev_slice : slice.t), RET #rev_slice; own_slice rev_slice 1 (reverse vs)
+  }}}.
+Proof.
+  wp_start.
+  iNamed "Hpre".
+  wp_auto.
+  iDestruct (own_slice_len with "Hslice") as "[%Hlength %Hslice_len]".
+  wp_apply wp_slice_make2 ; first word.
+  iIntros (rev_slice) "[? Hrev_slice]".
+  wp_auto.
+  wp_apply (
+    wp_sliceIter
+    slice
+    vs
+    (
+      λ i v,
+      True
+    )%I
+    (own_slice rev_slice 1 (reverse vs))
+  ) ; first done.
+  iIntros (?) "HsliceIter".
+  wp_auto.
+Admitted.

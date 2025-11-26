@@ -2,8 +2,10 @@ package iterator
 
 func sliceIter[V any](s []V) func(yield func(int, V) bool) {
 	return func(yield func(int, V) bool) {
-		for i, v := range s {
-			if !yield(i, v) {
+		// TODO: i conflicts with the i declared in slice.for_range, should fix?
+		// renamed from i to j for now
+		for j, v := range s {
+			if !yield(j, v) {
 				return
 			}
 		}
@@ -29,4 +31,20 @@ func isAscii(str []byte) bool {
 	iterator(loop_body)
 
 	return ret_val
+}
+
+func reverseSlice[V any](s []V) []V {
+	rev_s := make([]V, len(s))
+
+	loop_body := func(i int, v V) bool {
+		rev_s[len(s) - 1 - i] = v
+
+		return true
+	}
+	
+	iterator := sliceIter[V](s)
+
+	iterator(loop_body)
+
+	return rev_s
 }

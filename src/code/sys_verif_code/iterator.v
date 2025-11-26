@@ -62,11 +62,11 @@ Definition sliceIterⁱᵐᵖˡ : val :=
        exception_do (let: "yield" := (mem.alloc "yield") in
        let: "$range" := (![#sliceT] "s") in
        (let: "v" := (mem.alloc (type.zero_val "V")) in
-       let: "i" := (mem.alloc (type.zero_val #intT)) in
+       let: "j" := (mem.alloc (type.zero_val #intT)) in
        slice.for_range "V" "$range" (λ: "$key" "$value",
          do:  ("v" <-["V"] "$value");;;
-         do:  ("i" <-[#intT] "$key");;;
-         (if: (~ (let: "$a0" := (![#intT] "i") in
+         do:  ("j" <-[#intT] "$key");;;
+         (if: (~ (let: "$a0" := (![#intT] "j") in
          let: "$a1" := (!["V"] "v") in
          (![#funcT] "yield") "$a0" "$a1"))
          then return: (#())
@@ -76,7 +76,7 @@ Definition sliceIterⁱᵐᵖˡ : val :=
 
 Definition isAscii : go_string := "sys_verif_code/iterator.isAscii"%go.
 
-(* go: slice_iter.go:13:6 *)
+(* go: slice_iter.go:15:6 *)
 Definition isAsciiⁱᵐᵖˡ : val :=
   λ: "str",
     exception_do (let: "str" := (mem.alloc "str") in
@@ -108,9 +108,37 @@ Definition isAsciiⁱᵐᵖˡ : val :=
     (![#funcT] "iterator") "$a0");;;
     return: (![#boolT] "ret_val")).
 
+Definition reverseSlice : go_string := "sys_verif_code/iterator.reverseSlice"%go.
+
+(* go: slice_iter.go:36:6 *)
+Definition reverseSliceⁱᵐᵖˡ : val :=
+  λ: "V" "s",
+    exception_do (let: "s" := (mem.alloc "s") in
+    let: "rev_s" := (mem.alloc (type.zero_val #sliceT)) in
+    let: "$r0" := (slice.make2 "V" (let: "$a0" := (![#sliceT] "s") in
+    slice.len "$a0")) in
+    do:  ("rev_s" <-[#sliceT] "$r0");;;
+    let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (λ: "i" "v",
+      exception_do (let: "v" := (mem.alloc "v") in
+      let: "i" := (mem.alloc "i") in
+      let: "$r0" := (!["V"] "v") in
+      do:  ((slice.elem_ref "V" (![#sliceT] "rev_s") (((let: "$a0" := (![#sliceT] "s") in
+      slice.len "$a0") - #(W64 1)) - (![#intT] "i"))) <-["V"] "$r0");;;
+      return: (#true))
+      ) in
+    do:  ("loop_body" <-[#funcT] "$r0");;;
+    let: "iterator" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (let: "$a0" := (![#sliceT] "s") in
+    ((func_call #sliceIter) "V") "$a0") in
+    do:  ("iterator" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
+    (![#funcT] "iterator") "$a0");;;
+    return: (![#sliceT] "rev_s")).
+
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (reverseSlice, reverseSliceⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 

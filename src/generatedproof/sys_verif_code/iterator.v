@@ -46,5 +46,9 @@ Global Instance wp_func_call_isAscii :
   WpFuncCall iterator.isAscii _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
 
+Global Instance wp_func_call_reverseSlice :
+  WpFuncCall iterator.reverseSlice _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
 End names.
 End iterator.
