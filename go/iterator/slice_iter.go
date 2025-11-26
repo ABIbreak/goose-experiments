@@ -13,9 +13,9 @@ func sliceIter[V any](s []V) func(yield func(int, V) bool) {
 func isAscii(str []byte) bool {
 	ret_val := true
 
-	loop_body := func (i int, b byte) bool {
+	loop_body := func(i int, b byte) bool {
 		_ = i
-		if (b >= 0x80 || b == 0x00) {
+		if b >= 0x80 || b == 0x00 {
 			ret_val = false
 			return false
 		}

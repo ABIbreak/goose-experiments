@@ -1,13 +1,4 @@
-//package iter
-//package main
 package iterator
-
-import (
-//	"fmt"
-//	"github.com/goose-lang/std"
-// should push this into Perennial 
-//	"iter"
-)
 
 // func(yield func(V) bool) is the signature of iter.Seq[V]
 
@@ -35,8 +26,3 @@ func factorial(n int) int {
 
 	return factorial
 }
-
-func main() {
-//	fmt.Println(isAscii([]byte("amongus")))
-}
-
