@@ -14,7 +14,7 @@ Definition is_sliceIter `{!IntoVal V} (sliceIter : func.t) (trace : list V)
     "HP" :: P(W64 0)([]) ∗
     "#Hyield" :: □(
       ∀ (v : V) (vs : list V) (i : w64),
-        (⌜ vs ++ [v] = firstn (S (sint.nat i)) trace ⌝ (* -* vs <> trace also! *) ∗ P(i)(vs)) -∗
+        (⌜ vs ++ [v] = firstn (S (sint.nat i)) trace ⌝ ∗ P(i)(vs)) -∗
         WP #yield #i #v {{ 
           ok,
           if (decide (ok = #true)) then
@@ -27,9 +27,7 @@ Definition is_sliceIter `{!IntoVal V} (sliceIter : func.t) (trace : list V)
     ) ∗
     "Htrace" :: (P(W64 (length trace))(trace) -∗ Φ) 
   )%I -∗
-  WP #sliceIter #yield {{
-    _, Φ
-  }}.
+  WP #sliceIter #yield {{ _, Φ }}.
 
 (* TODO: suprised that this isn't in the Rocq stdlib but the converse is? maybe should upstream? *)
 Lemma firstn_n_length :
@@ -66,16 +64,14 @@ Proof.
   trivial.
 Qed.
 
+(* TODO: check if the initial own_slice will prevent modification of the slice during iteration? *)
 Lemma wp_sliceIter `{!IntoVal V} `{!IntoValTyped V t} `{Inhabited V} slice (vs : list V) P Φ' :
   {{{ 
     is_pkg_init iterator ∗ 
     "#Hslice" :: own_slice slice DfracDiscarded vs
   }}}
     @! iterator.sliceIter #t #slice
-  {{{
-    (f : func.t), RET #f;
-    is_sliceIter f vs P Φ'
-  }}}.
+  {{{ (f : func.t), RET #f; is_sliceIter f vs P Φ' }}}.
 Proof.
   wp_start.
   iNamed "Hpre".
@@ -299,3 +295,5 @@ Proof.
   iIntros (?) "HsliceIter".
   wp_auto.
 Admitted.
+
+End proof.
