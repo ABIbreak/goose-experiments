@@ -11,7 +11,7 @@ Context `{ffi_syntax}.
 
 Definition intIter : go_string := "sys_verif_code/iterator.intIter"%go.
 
-(* go: int_iter.go:14:6 *)
+(* go: int_iter.go:5:6 *)
 Definition intIterⁱᵐᵖˡ : val :=
   λ: "limit",
     exception_do (let: "limit" := (mem.alloc "limit") in
@@ -30,7 +30,7 @@ Definition intIterⁱᵐᵖˡ : val :=
 
 Definition factorial : go_string := "sys_verif_code/iterator.factorial"%go.
 
-(* go: int_iter.go:24:6 *)
+(* go: int_iter.go:15:6 *)
 Definition factorialⁱᵐᵖˡ : val :=
   λ: "n",
     exception_do (let: "n" := (mem.alloc "n") in
@@ -51,13 +51,6 @@ Definition factorialⁱᵐᵖˡ : val :=
     do:  (let: "$a0" := (![#funcT] "loop_body") in
     (![#funcT] "iterator") "$a0");;;
     return: (![#intT] "factorial")).
-
-Definition main : go_string := "sys_verif_code/iterator.main"%go.
-
-(* go: int_iter.go:39:6 *)
-Definition mainⁱᵐᵖˡ : val :=
-  λ: <>,
-    exception_do (do:  #()).
 
 Definition sliceIter : go_string := "sys_verif_code/iterator.sliceIter"%go.
 
@@ -117,7 +110,7 @@ Definition isAsciiⁱᵐᵖˡ : val :=
 
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (main, mainⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 
