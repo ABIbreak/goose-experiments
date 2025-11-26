@@ -8,26 +8,26 @@ Context `{hG: !heapGS Σ} `{!globalsGS Σ} {go_ctx: GoContext}.
 #[global] Instance : IsPkgInit iterator := define_is_pkg_init True%I.
 #[global] Instance : GetIsPkgInitWf iterator := build_get_is_pkg_init_wf.
 
-
-Definition is_detTraceIter `{!IntoVal V} (detTraceIter : func.t) (trace : list V) (P : list V → iPropI Σ) Φ : iPropI Σ :=
+Definition is_sliceIter `{!IntoVal V} (sliceIter : func.t) (trace : list V) 
+    (P : w64 → list V → iPropI Σ) Φ : iPropI Σ :=
   ∀ (yield : func.t), (
-    "HP" :: P([]) ∗
+    "HP" :: P(W64 0)([]) ∗
     "#Hyield" :: □(
       ∀ (v : V) (vs : list V) (i : nat),
-        (⌜ vs ++ [v] = firstn (S i) trace ⌝ (* -* vs <> trace also! *) ∗ P(vs)) -∗
+        (⌜ vs ++ [v] = firstn (S i) trace ⌝ (* -* vs <> trace also! *) ∗ P(W64 i)(vs)) -∗
         WP #yield #v {{ 
           ok,
           if (decide (ok = #true)) then
-            P((vs ++ [v])%list)
+            P(W64 (S i))((vs ++ [v])%list)
           else if (decide (ok = #false)) then
             Φ
           else
             False
         }}
     ) ∗
-    "Htrace" :: (P(trace) -∗ Φ) 
+    "Htrace" :: (P(length trace)(trace) -∗ Φ) 
   )%I -∗
-  WP #detTraceIter #yield {{
+  WP #sliceIter #yield {{
     _, Φ
   }}.
 
@@ -74,14 +74,14 @@ Lemma wp_sliceIter `{!IntoVal V} `{!IntoValTyped V t} `{Inhabited V} slice (vs :
     @! iterator.sliceIter #t #slice
   {{{
     (f : func.t), RET #f;
-    is_detTraceIter f vs P Φ'
+    is_sliceIter f vs P Φ'
   }}}.
 Proof.
   wp_start.
   iNamed "Hpre".
   wp_auto.
   iApply "HΦ".
-  unfold is_detTraceIter.
+  unfold is_sliceIter.
   iIntros (yield) "Hpre".
   iNamed "Hpre".
   iDestruct (own_slice_len with "Hslice") as "[%Hlength %Hslice_len]".
@@ -90,7 +90,7 @@ Proof.
     ∃(i : w64) (v : V),
     "i" :: i_ptr ↦ i ∗
     "v" :: v_ptr ↦ v ∗ (* v = (vs !!! (sint.nat i)) *)
-    "HP" :: P(firstn (sint.nat i) vs) ∗
+    "HP" :: P(i)(firstn (sint.nat i) vs) ∗
     "%Hi" :: ⌜ 0 ≤ sint.Z i ≤ length vs ⌝
   )%I with "[HP i v]" as "Hinv".
   {
@@ -104,10 +104,8 @@ Proof.
     wp_bind (slice.elem_ref (# t) (# slice) (# i)).
     wp_pure ; first word.
     wp_auto.
-
     assert (sint.nat i < length vs)%nat as Hi3 by word.
     apply list_lookup_lookup_total_lt in Hi3.
-
     wp_apply (wp_load_slice_elem slice i vs DfracDiscarded _) ; first lia.
     {
       iSplitL.
@@ -120,6 +118,7 @@ Proof.
     iApply (wp_wand with "[HP]").
     {
       iApply ("Hyield" $! (vs !!! sint.nat i) (firstn (sint.nat i) vs) (sint.nat i)).
+      replace (W64 (sint.nat i)) with i by word.
       iFrame.
       iPureIntro.
       pose proof (take_S_r vs (sint.nat i) (vs !!! (sint.nat i))) as H0.
@@ -134,10 +133,11 @@ Proof.
       wp_for_post.
       iFrame.
       iSplitL.
-      - replace (sint.nat (word.add i (W64 1))) with (S (sint.nat i))%nat by word.
+      - replace (W64 (S (sint.nat i))) with (word.add i (W64 1)) by word.
+        replace (sint.nat (word.add i (W64 1))) with (S (sint.nat i))%nat by word.
         simpl.
         pose proof (take_S_r vs (sint.nat i) (vs !!! sint.nat i)) as Htake.
-        rewrite Htake ; first done.
+        rewrite <- Htake ; first done.
         done.
       - word.
     }
@@ -153,6 +153,8 @@ Proof.
   iApply "Htrace".
   replace (sint.nat i) with (length vs) by word.
   replace (take (length vs) vs) with vs by (symmetry ; apply firstn_all).
+  assert (i = W64 (length vs)) by word.
+  subst.
   done.
 Qed.
 
@@ -178,19 +180,19 @@ Proof.
     slice 
     vs
     (
-      λ l,
+      λ _ l,
       "%HisAscii" :: ⌜ isAscii l ⌝ ∗ 
       "ret_val" :: ret_val_ptr ↦ bool_decide (isAscii l)
     )%I
     (ret_val_ptr ↦ bool_decide (isAscii vs))%I
   ) ; first done.
-  iIntros (?) "HdetTraceIter".
+  iIntros (?) "HsliceIter".
   wp_auto.
-  unfold is_detTraceIter.
+  unfold is_sliceIter.
   wp_bind (#f (#_)).
-  iApply (wp_wand with "[ret_val HdetTraceIter]").
+  iApply (wp_wand with "[ret_val HsliceIter]").
   {
-    iApply "HdetTraceIter".
+    iApply "HsliceIter".
     iFrame.
     iSplitR.
     {

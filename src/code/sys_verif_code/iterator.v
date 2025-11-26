@@ -11,7 +11,7 @@ Context `{ffi_syntax}.
 
 Definition intIter : go_string := "sys_verif_code/iterator.intIter"%go.
 
-(* go: intIter.go:14:6 *)
+(* go: int_iter.go:14:6 *)
 Definition intIterⁱᵐᵖˡ : val :=
   λ: "limit",
     exception_do (let: "limit" := (mem.alloc "limit") in
@@ -30,7 +30,7 @@ Definition intIterⁱᵐᵖˡ : val :=
 
 Definition factorial : go_string := "sys_verif_code/iterator.factorial"%go.
 
-(* go: intIter.go:24:6 *)
+(* go: int_iter.go:24:6 *)
 Definition factorialⁱᵐᵖˡ : val :=
   λ: "n",
     exception_do (let: "n" := (mem.alloc "n") in
@@ -54,14 +54,14 @@ Definition factorialⁱᵐᵖˡ : val :=
 
 Definition main : go_string := "sys_verif_code/iterator.main"%go.
 
-(* go: intIter.go:39:6 *)
+(* go: int_iter.go:39:6 *)
 Definition mainⁱᵐᵖˡ : val :=
   λ: <>,
     exception_do (do:  #()).
 
 Definition sliceIter : go_string := "sys_verif_code/iterator.sliceIter"%go.
 
-(* go: traceIter.go:3:6 *)
+(* go: slice_iter.go:3:6 *)
 Definition sliceIterⁱᵐᵖˡ : val :=
   λ: "V" "s",
     exception_do (let: "s" := (mem.alloc "s") in
@@ -69,11 +69,13 @@ Definition sliceIterⁱᵐᵖˡ : val :=
        exception_do (let: "yield" := (mem.alloc "yield") in
        let: "$range" := (![#sliceT] "s") in
        (let: "v" := (mem.alloc (type.zero_val "V")) in
+       let: "i" := (mem.alloc (type.zero_val #intT)) in
        slice.for_range "V" "$range" (λ: "$key" "$value",
          do:  ("v" <-["V"] "$value");;;
-         do:  "$key";;;
-         (if: (~ (let: "$a0" := (!["V"] "v") in
-         (![#funcT] "yield") "$a0"))
+         do:  ("i" <-[#intT] "$key");;;
+         (if: (~ (let: "$a0" := (![#intT] "i") in
+         let: "$a1" := (!["V"] "v") in
+         (![#funcT] "yield") "$a0" "$a1"))
          then return: (#())
          else do:  #())));;;
        return: #())
@@ -81,7 +83,7 @@ Definition sliceIterⁱᵐᵖˡ : val :=
 
 Definition isAscii : go_string := "sys_verif_code/iterator.isAscii"%go.
 
-(* go: traceIter.go:13:6 *)
+(* go: slice_iter.go:13:6 *)
 Definition isAsciiⁱᵐᵖˡ : val :=
   λ: "str",
     exception_do (let: "str" := (mem.alloc "str") in
@@ -89,8 +91,11 @@ Definition isAsciiⁱᵐᵖˡ : val :=
     let: "$r0" := #true in
     do:  ("ret_val" <-[#boolT] "$r0");;;
     let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
-    let: "$r0" := (λ: "b",
+    let: "$r0" := (λ: "i" "b",
       exception_do (let: "b" := (mem.alloc "b") in
+      let: "i" := (mem.alloc "i") in
+      let: "$r0" := (![#intT] "i") in
+      do:  "$r0";;;
       (if: ((![#byteT] "b") ≥ #(W8 128)) || ((![#byteT] "b") = #(W8 0))
       then
         let: "$r0" := #false in
