@@ -63,7 +63,7 @@ Definition mapIterⁱᵐᵖˡ : val :=
        let: "$range" := (![type.mapT "K" "V"] "m") in
        (let: "v" := (mem.alloc (type.zero_val "V")) in
        let: "k" := (mem.alloc (type.zero_val "K")) in
-       map.for_range "$range" (λ: "$key" "value",
+       map.for_range "$range" (λ: "$key" "$value",
          do:  ("v" <-["V"] "$value");;;
          do:  ("k" <-["K"] "$key");;;
          (if: (~ (let: "$a0" := (!["K"] "k") in
