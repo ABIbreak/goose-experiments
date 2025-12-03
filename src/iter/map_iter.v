@@ -13,7 +13,7 @@ Context `{Inhabited V} `{!IntoVal V} `{!IntoValTyped V vt}.
 #[global] Instance : GetIsPkgInitWf iterator := build_get_is_pkg_init_wf.
 
 Definition is_mapIter (mapIter : func.t) (m : gmap K V) : iPropI Σ :=
-  ∀ (P : gmap K V → iPropI Σ) Φ (yield : func.t), (
+  ∀ (P : gmap K V → iPropI Σ) (Φ: val → iProp Σ) (yield : func.t), (
     "HP" :: P(∅) ∗
     "#Hyield" :: □(
       ∀ (k : K) (v : V) (sm : gmap K V),
@@ -23,17 +23,17 @@ Definition is_mapIter (mapIter : func.t) (m : gmap K V) : iPropI Σ :=
           if (decide (ok = #true)) then
             P(<[ k := v ]> sm)
           else if (decide (ok = #false)) then
-            Φ
+            Φ (return_val #())
           else
             False
         }}
     ) ∗
-    "Htrace" :: (P(m) -∗ Φ)
+    "Htrace" :: (P(m) -∗ Φ execute_val)
   )%I -∗
-  WP #mapIter #yield {{ _, Φ }}.
+  WP #mapIter #yield {{ Φ }}.
 
 Axiom wp_map_for_range :
-  ∀ mref (m : gmap K V) (body : func.t) dq Φ,
+  ∀ mref (m : gmap K V) (body : func.t) dq (Φ: val → iProp Σ),
   own_map mref dq m ∗
   (∀ keys_sl keys,
      ⌜ list_to_set keys = dom m ∧ length keys = size m ∧ NoDup keys ⌝ ∗
@@ -43,9 +43,9 @@ Axiom wp_map_for_range :
           let: "kv"%string := (map.get (#mref) "k"%string) in
           let: "v"%string := Fst "kv"%string in 
           #body "k"%string ("v"%string)
-      )%E {{ _, own_map mref dq m ∗ Φ }}
+      )%E {{ v, own_map mref dq m ∗ Φ v }} (* TODO: doesn't account for early termination *)
   ) -∗ 
-  WP map.for_range #mref #body {{ _, Φ }}.
+  WP map.for_range #mref #body {{ Φ }}.
 
 (* TODO: what amount of ownership should be given to the iterator? (mirroring concerns about slice iterator) *)
 Lemma wp_mapIter mref (m : gmap K V):
@@ -236,8 +236,7 @@ Proof.
       subst.
       wp_auto.
       wp_for_post.
-      iFrame.
-      done.
+      iFrame "#∗".
     }
     iIntros "?".
     done.
