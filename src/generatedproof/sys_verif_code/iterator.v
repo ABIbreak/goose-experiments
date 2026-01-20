@@ -30,6 +30,14 @@ Global Program Instance is_pkg_defined_iterator : IsPkgDefined iterator :=
 Final Obligation. iIntros. iFrame "#%". Qed.
 #[local] Opaque is_pkg_defined_single is_pkg_defined_pure_single.
 
+Global Instance wp_func_call_chanIter :
+  WpFuncCall iterator.chanIter _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
+Global Instance wp_func_call_collectChannel :
+  WpFuncCall iterator.collectChannel _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
 Global Instance wp_func_call_intIter :
   WpFuncCall iterator.intIter _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
@@ -44,6 +52,10 @@ Global Instance wp_func_call_mapIter :
 
 Global Instance wp_func_call_mapDeepEqual :
   WpFuncCall iterator.mapDeepEqual _ (is_pkg_defined iterator) :=
+  ltac:(solve_wp_func_call).
+
+Global Instance wp_func_call_inSlice :
+  WpFuncCall iterator.inSlice _ (is_pkg_defined iterator) :=
   ltac:(solve_wp_func_call).
 
 Global Instance wp_func_call_sliceIter :

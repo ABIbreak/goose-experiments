@@ -9,6 +9,53 @@ Section code.
 Context `{ffi_syntax}.
 
 
+Definition chanIter : go_string := "sys_verif_code/iterator.chanIter"%go.
+
+(* go: channel_iter.go:3:6 *)
+Definition chanIterⁱᵐᵖˡ : val :=
+  λ: "V" "channel",
+    exception_do (let: "channel" := (mem.alloc "channel") in
+    return: ((λ: "yield",
+       exception_do (let: "yield" := (mem.alloc "yield") in
+       let: "$range" := (![type.chanT "V"] "channel") in
+       (let: "v" := (mem.alloc (type.zero_val "V")) in
+       chan.for_range "V" "$range" (λ: "$key",
+         do:  ("v" <-["V"] "$key");;;
+         (if: (~ (let: "$a0" := (!["V"] "v") in
+         (![#funcT] "yield") "$a0"))
+         then return: (#())
+         else do:  #())));;;
+       return: #())
+       ))).
+
+Definition collectChannel : go_string := "sys_verif_code/iterator.collectChannel"%go.
+
+(* go: channel_iter.go:14:6 *)
+Definition collectChannelⁱᵐᵖˡ : val :=
+  λ: "V" "channel",
+    exception_do (let: "channel" := (mem.alloc "channel") in
+    let: "s" := (mem.alloc (type.zero_val #sliceT)) in
+    let: "$r0" := (slice.make2 "V" #(W64 0)) in
+    do:  ("s" <-[#sliceT] "$r0");;;
+    let: "loop_body" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (λ: "v",
+      exception_do (let: "v" := (mem.alloc "v") in
+      let: "$r0" := (let: "$a0" := (![#sliceT] "s") in
+      let: "$a1" := ((let: "$sl0" := (!["V"] "v") in
+      slice.literal "V" ["$sl0"])) in
+      (slice.append "V") "$a0" "$a1") in
+      do:  ("s" <-[#sliceT] "$r0");;;
+      return: (#true))
+      ) in
+    do:  ("loop_body" <-[#funcT] "$r0");;;
+    let: "iterator" := (mem.alloc (type.zero_val #funcT)) in
+    let: "$r0" := (let: "$a0" := (![type.chanT "V"] "channel") in
+    ((func_call #chanIter) "V") "$a0") in
+    do:  ("iterator" <-[#funcT] "$r0");;;
+    do:  (let: "$a0" := (![#funcT] "loop_body") in
+    (![#funcT] "iterator") "$a0");;;
+    return: (![#sliceT] "s")).
+
 Definition intIter : go_string := "sys_verif_code/iterator.intIter"%go.
 
 (* go: int_iter.go:5:6 *)
@@ -117,6 +164,26 @@ Definition mapDeepEqualⁱᵐᵖˡ : val :=
     (![#funcT] "iterator") "$a0");;;
     return: (![#boolT] "ret_val")).
 
+Definition inSlice : go_string := "sys_verif_code/iterator.inSlice"%go.
+
+(* go: map_iter.go:52:6 *)
+Definition inSliceⁱᵐᵖˡ : val :=
+  λ: "s" "needle",
+    exception_do (let: "needle" := (mem.alloc "needle") in
+    let: "s" := (mem.alloc "s") in
+    let: "$range" := (![#sliceT] "s") in
+    (let: "v" := (mem.alloc (type.zero_val #intT)) in
+    let: "j" := (mem.alloc (type.zero_val #intT)) in
+    slice.for_range #intT "$range" (λ: "$key" "$value",
+      do:  ("v" <-[#intT] "$value");;;
+      do:  ("j" <-[#intT] "$key");;;
+      let: "$r0" := (![#intT] "j") in
+      do:  "$r0";;;
+      (if: (![#intT] "v") = (![#intT] "needle")
+      then return: (#true)
+      else do:  #())));;;
+    return: (#false)).
+
 Definition sliceIter : go_string := "sys_verif_code/iterator.sliceIter"%go.
 
 (* go: slice_iter.go:3:6 *)
@@ -203,7 +270,7 @@ Definition reverseSliceⁱᵐᵖˡ : val :=
 
 Definition vars' : list (go_string * go_type) := [].
 
-Definition functions' : list (go_string * val) := [(intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (mapIter, mapIterⁱᵐᵖˡ); (mapDeepEqual, mapDeepEqualⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (reverseSlice, reverseSliceⁱᵐᵖˡ)].
+Definition functions' : list (go_string * val) := [(chanIter, chanIterⁱᵐᵖˡ); (collectChannel, collectChannelⁱᵐᵖˡ); (intIter, intIterⁱᵐᵖˡ); (factorial, factorialⁱᵐᵖˡ); (mapIter, mapIterⁱᵐᵖˡ); (mapDeepEqual, mapDeepEqualⁱᵐᵖˡ); (inSlice, inSliceⁱᵐᵖˡ); (sliceIter, sliceIterⁱᵐᵖˡ); (isAscii, isAsciiⁱᵐᵖˡ); (reverseSlice, reverseSliceⁱᵐᵖˡ)].
 
 Definition msets' : list (go_string * (list (go_string * val))) := [].
 
