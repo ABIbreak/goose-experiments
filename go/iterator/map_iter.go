@@ -34,3 +34,29 @@ func mapDeepEqual[K comparable, V comparable](m1, m2 map[K]V) bool {
 
 	return ret_val
 }
+
+// TODO: remove; meant only to see how to prove something about returning
+// inside a slice iteration
+/* func inSlice[T comparable](s []T, needle T) bool {
+	for j, v := range s {
+		_ = j
+
+		if v == needle {
+			return true
+		}
+	}
+
+	return false
+} */
+
+func inSlice(s []int, needle int) bool {
+	for j, v := range s {
+		_ = j
+
+		if v == needle {
+			return true
+		}
+	}
+
+	return false
+}
