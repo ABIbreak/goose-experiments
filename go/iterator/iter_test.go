@@ -67,8 +67,8 @@ func TestMapDeepEqualSubmaps(t *testing.T) {
 }
 
 func TestMapDeepEqualIntersect(t *testing.T) {
-	m1 := map[int]int{0 : 0, 1 : 1, 2 : 2}
-	m2 := map[int]int{1 : 1, 2 : 2, 3 : 3}
+	m1 := map[int]int{0: 0, 1: 1, 2: 2}
+	m2 := map[int]int{1: 1, 2: 2, 3: 3}
 
 	if mapDeepEqual(m1, m2) || mapDeepEqual(m2, m1) {
 		t.Errorf(`Intersecting maps are not necessarily equal!`)
